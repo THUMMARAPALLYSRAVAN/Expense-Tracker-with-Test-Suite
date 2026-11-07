@@ -1,0 +1,13 @@
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+.env
+instance/*.db
+data/uploads/*
+data/transactions_export.csv
+.history/

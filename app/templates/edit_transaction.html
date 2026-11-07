@@ -1,0 +1,62 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Transaction</title>
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <main class="container">
+        <h1>Edit Transaction</h1>
+
+        <form method="POST">
+
+            <label>Amount (₹)</label>
+            <input type="number" name="amount"
+                   value="{{ '%.2f'|format(transaction.amount_paise / 100) }}"
+                   step="0.01" min="0.01" required>
+
+            <label>Transaction Type</label>
+            <select name="transaction_type" required>
+                <option value="expense"
+                    {% if transaction.transaction_type == 'expense' %}selected{% endif %}>
+                    Expense
+                </option>
+                <option value="income"
+                    {% if transaction.transaction_type == 'income' %}selected{% endif %}>
+                    Income
+                </option>
+            </select>
+
+            <label>Category</label>
+            <select name="category_id" required>
+                {% for category in categories %}
+                    <option value="{{ category.id }}"
+                        {% if category.id == transaction.category_id %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <label>Description</label>
+            <input type="text" name="description"
+                   value="{{ transaction.description }}" required>
+
+            <label>Date</label>
+            <input type="datetime-local" name="transaction_date"
+                   value="{{ transaction.transaction_date.strftime('%Y-%m-%dT%H:%M') }}"
+                   required>
+
+            <button type="submit">Update Transaction</button>
+
+            <a href="{{ url_for('dashboard.dashboard') }}">Cancel</a>
+
+        </form>
+    </main>
+
+</body>
+</html>

@@ -1,0 +1,244 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker Dashboard</title>
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <nav class="navbar">
+        <h2>ExpenseTracker</h2>
+        <div class="nav-links">
+            <a href="/">Dashboard</a>
+            <a href="#transactions">Transactions</a>
+            <a href="#budgets">Budgets</a>
+            <a href="#recurring">Recurring</a>
+            <a href="{{ url_for('dashboard.recurring_expenses_route') }}">
+    Recurring Expenses
+</a>
+<a href="{{ url_for('dashboard.csv_page') }}">
+    CSV Management
+</a>
+        </div>
+    </nav>
+
+    <header class="header">
+        <h1>Expense Tracker</h1>
+        <p>Manage your money smarter</p>
+    </header>
+
+    <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+        <div class="alert {{ category }}">
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endwith %}
+
+        <section class="summary">
+            <div class="card">
+                <h3>Total Income</h3>
+                <p>₹ {{ "%.2f"|format(summary.total_income_paise / 100) }}</p>
+            </div>
+
+            <div class="card">
+                <h3>Total Expenses</h3>
+                <p>₹ {{ "%.2f"|format(summary.total_expense_paise / 100) }}</p>
+            </div>
+
+            <div class="card">
+                <h3>Balance</h3>
+                <p>₹ {{ "%.2f"|format(summary.balance_paise / 100) }}</p>
+            </div>
+        </section>
+
+        <section class="transactions">
+            <h2>Add New Transaction</h2>
+
+            <form method="POST"
+      action="{{ url_for('dashboard.add_transaction_route') }}">
+
+                <input type="number" name="amount"
+                       placeholder="Enter amount"
+                       step="0.01" min="0.01" required>
+
+                <select name="transaction_type" required>
+                    <option value="">Select Type</option>
+                    <option value="income">Income</option>
+                    <option value="expense">Expense</option>
+                </select>
+
+                <select name="category_id" required>
+                    <option value="">Select Category</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}">
+                        {{ category.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+
+                <input type="text" name="description"
+                       placeholder="Description" required>
+
+                <input type="date" name="transaction_date" required>
+
+                <button type="submit">Add Transaction</button>
+            </form>
+        </section>
+
+        <section class="transactions" id="transactions">
+            <h2>Recent Transactions</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th>Category</th>
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for transaction in transactions %}
+                    <tr>
+                        <td>{{ transaction.description }}</td>
+                        <td>{{ transaction.category.name }}</td>
+                        <td class="{{ transaction.transaction_type }}">
+                            {{ transaction.transaction_type|title }}
+                        </td>
+                        <td>₹ {{ "%.2f"|format(transaction.amount_paise / 100) }}</td>
+                        <td>{{ transaction.transaction_date.strftime("%d-%m-%Y") }}</td>
+                        <td>
+    <a href="{{ url_for('dashboard.edit_transaction_route', transaction_id=transaction.id) }}">
+        <button type="button">Edit</button>
+    </a>
+
+    <form method="POST"
+          action="{{ url_for('dashboard.delete_transaction_route', transaction_id=transaction.id) }}">
+        <button type="submit">Delete</button>
+    </form>
+</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6">No transactions found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+        
+<section class="transactions" id="budgets">
+    <h2>Set Monthly Budget</h2>
+
+    <form method="POST"
+          action="{{ url_for('dashboard.set_budget_route') }}">
+
+        <label>Category</label>
+        <select name="category_id" required>
+            <option value="">Select Category</option>
+            {% for category in categories %}
+                <option value="{{ category.id }}">
+                    {{ category.name }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <label>Budget Amount (₹)</label>
+        <input type="number"
+               name="amount"
+               placeholder="Enter budget amount"
+               min="0.01"
+               step="0.01"
+               required>
+
+        <label>Month</label>
+        <select name="month" required>
+            {% for month in range(1, 13) %}
+                <option value="{{ month }}"
+                    {% if month == today_month %}selected{% endif %}>
+                    {{ month }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <label>Year</label>
+        <input type="number"
+               name="year"
+               value="{{ today_year }}"
+               min="1"
+               required>
+
+        <button type="submit">Save Budget</button>
+    </form>
+</section>
+
+<section class="transactions" id="budget-status">
+    <h2>Monthly Budget Overview</h2>
+
+    {% if budget_statuses %}
+        <div class="budget-grid">
+
+            {% for item in budget_statuses %}
+            <div class="budget-card">
+
+                <h3>{{ item.category }}</h3>
+
+                <p>
+                    Budget:
+                    <strong>₹{{ "%.2f"|format(item.budget) }}</strong>
+                </p>
+
+                <p>
+                    Spent:
+                    <strong>₹{{ "%.2f"|format(item.spent) }}</strong>
+                </p>
+
+                <p>
+                    Remaining:
+                    <strong>₹{{ "%.2f"|format(item.remaining) }}</strong>
+                </p>
+
+                {% set percentage =
+                    (item.spent / item.budget * 100)
+                    if item.budget > 0 else 0
+                %}
+
+                <div class="budget-progress">
+                    <div class="budget-progress-fill"
+                         style="width: {{ [percentage, 100]|min }}%;">
+                    </div>
+                </div>
+
+                {% if item.is_over_budget %}
+                    <p class="budget-warning">
+                        ⚠ You have exceeded your budget!
+                    </p>
+                {% else %}
+                    <p class="budget-success">
+                        ✓ You are within your budget.
+                    </p>
+                {% endif %}
+
+            </div>
+            {% endfor %}
+
+        </div>
+    {% else %}
+        <p>No budgets created for this month yet.</p>
+    {% endif %}
+</section>
+
+
+    </main>
+
+</body>
+</html>

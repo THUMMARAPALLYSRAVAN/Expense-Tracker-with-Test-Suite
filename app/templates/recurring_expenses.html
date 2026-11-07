@@ -1,0 +1,193 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recurring Expenses | Expense Tracker</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+<main class="container">
+
+    <h1>Recurring Expenses</h1>
+    <form method="POST" action="{{ url_for('dashboard.process_recurring_route') }}">
+        <button type="submit">Process Due Expenses</button>
+    </form>
+
+    <p>
+        <a href="{{ url_for('dashboard.dashboard') }}">
+            ← Back to Dashboard
+        </a>
+    </p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <p class="{{ category }}">{{ message }}</p>
+        {% endfor %}
+    {% endwith %}
+
+    <section class="transactions">
+
+        <h2>Add Recurring Expense</h2>
+
+        <form method="POST"
+              action="{{ url_for('dashboard.add_recurring_expense_route') }}">
+
+            <label>Expense Title</label>
+            <input type="text"
+                   name="title"
+                   placeholder="Example: Internet Bill"
+                   required>
+
+            <label>Amount (₹)</label>
+            <input type="number"
+                   name="amount"
+                   min="0.01"
+                   step="0.01"
+                   placeholder="Enter amount"
+                   required>
+
+            <label>Category</label>
+            <select name="category_id" required>
+                <option value="">Select Category</option>
+
+                {% for category in categories %}
+                    <option value="{{ category.id }}">
+                        {{ category.name }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <label>Frequency</label>
+            <select name="frequency" required>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly" selected>Monthly</option>
+                <option value="yearly">Yearly</option>
+            </select>
+
+            <label>Start Date</label>
+            <input type="date"
+                   name="start_date"
+                   required>
+
+            <button type="submit">
+                Add Recurring Expense
+            </button>
+
+        </form>
+
+    </section>
+
+
+    <section class="transactions">
+
+        <h2>All Recurring Expenses</h2>
+
+        {% if expenses %}
+
+        <div class="table-responsive">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Amount</th>
+                        <th>Category</th>
+                        <th>Frequency</th>
+                        <th>Next Due Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                {% for expense in expenses %}
+
+                    <tr>
+                        <td>{{ expense.title }}</td>
+
+                        <td>
+                            ₹{{ "%.2f"|format(expense.amount_paise / 100) }}
+                        </td>
+
+                        <td>{{ expense.category.name }}</td>
+
+                        <td>{{ expense.frequency|capitalize }}</td>
+
+                        <td>
+                            {{ expense.next_due_date.strftime('%d-%m-%Y') }}
+                        </td>
+
+                        <td>
+                            {% if expense.is_active %}
+                                Active
+                            {% else %}
+                                Inactive
+                            {% endif %}
+                        </td>
+
+                        <td>
+
+                            <form method="POST"
+                                  action="{{ url_for('dashboard.update_recurring_expense_route', expense_id=expense.id) }}">
+
+                                {% if expense.is_active %}
+                                    <input type="hidden"
+                                           name="is_active"
+                                           value="false">
+
+                                    <button type="submit">
+                                        Deactivate
+                                    </button>
+                                {% else %}
+                                    <input type="hidden"
+                                           name="is_active"
+                                           value="true">
+
+                                    <button type="submit">
+                                        Activate
+                                    </button>
+                                {% endif %}
+
+                            </form>
+
+                            <form method="POST"
+                                  action="{{ url_for('dashboard.delete_recurring_expense_route', expense_id=expense.id) }}">
+
+                                <button type="submit">
+                                    Delete
+                                </button>
+
+                            </form>
+
+                        </td>
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        {% else %}
+
+            <p>No recurring expenses found.</p>
+
+        {% endif %}
+
+    </section>
+
+</main>
+
+</body>
+</html>
